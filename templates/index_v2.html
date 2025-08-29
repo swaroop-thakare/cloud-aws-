@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>AI-Powered Intelligent Document Processing (v2)</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+	<style>
+		:root { --glass: rgba(255,255,255,0.08); --border: rgba(255,255,255,0.15); --txt: #d6f3ff; }
+		*{ box-sizing: border-box; }
+		body{ margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: #020617; color: var(--txt); }
+		.hero{ position:relative; padding: 64px 20px; background: radial-gradient(1200px 600px at 50% -20%, rgba(56,189,248,0.25), transparent), linear-gradient(120deg, rgba(168,85,247,0.12), rgba(56,189,248,0.12)); overflow:hidden; }
+		.container{ max-width: 1100px; margin: 0 auto; }
+		.card{ background: var(--glass); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+		.btn{ background: #67e8f9; color: #0f172a; border: none; padding: 10px 16px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+		.btn:disabled{ opacity:.6; cursor:not-allowed }
+		.grid{ display:grid; gap:16px }
+		@media(min-width: 980px){ .grid-2{ grid-template-columns: 1fr 1fr } }
+		.badge{ display:inline-block; padding:4px 10px; border-radius:999px; border:1px solid var(--border); background:rgba(255,255,255,.06); font-size:12px }
+		.code{ white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; color:#bde3ff }
+	</style>
+</head>
+<body>
+	<section class="hero">
+		<div class="container" style="text-align:center">
+			<h1 style="font-size:42px; margin:0; text-shadow: 0 0 20px rgba(56,189,248,.5)">AI-Powered Intelligent Document Processing</h1>
+			<p style="opacity:.9; margin-top:12px">OCR + Gemini + KYC + LangGraph in one platform</p>
+			<a href="#demo" class="btn" style="margin-top:16px; display:inline-block">Try Demo</a>
+		</div>
+	</section>
+
+	<section id="demo" style="padding: 28px 20px">
+		<div class="container grid grid-2">
+			<div class="card">
+				<h3 style="margin:0 0 12px 0">Upload Image</h3>
+				<form id="f" class="grid" enctype="multipart/form-data">
+					<input name="image" type="file" accept="image/*" required />
+					<label class="badge">Optional: ID face image</label>
+					<input name="id_face" type="file" accept="image/*" />
+					<label class="badge">Optional: Selfie image</label>
+					<input name="selfie" type="file" accept="image/*" />
+					<div>
+						<button id="run" type="submit" class="btn">Run v2 Pipeline</button>
+						<button id="reset" type="button" class="btn" style="background:transparent; color:#e2f2ff; border:1px solid var(--border); margin-left:8px">Reset</button>
+					</div>
+				</form>
+				<div id="progress" style="margin-top:12px; font-size:14px"></div>
+			</div>
+
+			<div class="card">
+				<h3 style="margin:0 0 12px 0">Results</h3>
+				<div class="grid">
+					<div>
+						<p class="badge">Structured JSON</p>
+						<pre id="json" class="code">// Run the pipeline to see results</pre>
+					</div>
+					<div>
+						<p class="badge">Audit Log</p>
+						<pre id="audit" class="code"></pre>
+					</div>
+					<div>
+						<p class="badge">Final Status</p>
+						<pre id="status" class="code"></pre>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<script>
+		const f = document.getElementById('f');
+		const btn = document.getElementById('run');
+		const btnReset = document.getElementById('reset');
+		const preJson = document.getElementById('json');
+		const preAudit = document.getElementById('audit');
+		const preStatus = document.getElementById('status');
+		const progress = document.getElementById('progress');
+
+		const steps = ["OCR", "Gemini", "Validation", "KYC", "Excel/Sheets", "Audit"];
+		let timer;
+
+		function simulateProgress(){
+			let i = 0;
+			progress.textContent = '';
+			clearInterval(timer);
+			timer = setInterval(() => {
+				if(i >= steps.length) return clearInterval(timer);
+				progress.textContent += `\n▶ ${steps[i]}...`;
+				i++;
+			}, 500);
+		}
+
+		btnReset.onclick = () => {
+			preJson.textContent = '// Run the pipeline to see results';
+			preAudit.textContent = '';
+			preStatus.textContent = '';
+			progress.textContent = '';
+		};
+
+		f.onsubmit = async (e) => {
+			e.preventDefault();
+			btn.disabled = true;
+			simulateProgress();
+			try{
+				const fd = new FormData(f);
+				const resp = await fetch('/api/v2/process', { method: 'POST', body: fd });
+				if(!resp.ok){ throw new Error('Request failed'); }
+				const data = await resp.json();
+				preJson.textContent = JSON.stringify(data.structured, null, 2);
+				preAudit.textContent = data.audit || '';
+				preStatus.textContent = data.kyc_status || '';
+				progress.textContent += '\n✔ Done';
+			} catch(err){
+				preAudit.textContent = 'Error: ' + err.message;
+			} finally {
+				btn.disabled = false;
+				clearInterval(timer);
+			}
+		};
+	</script>
+</body>
+</html>
